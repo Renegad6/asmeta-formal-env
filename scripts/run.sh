@@ -1,47 +1,59 @@
 #!/bin/bash
 
-# Uso:
-#   ./run.sh                → modo efímero (contenedor temporal)
-#   ./run.sh --persistent   → modo persistente (mantiene ASMETA instalado)
-#   ./run.sh --clean        → limpia contenedores parados
+# Usage:
+#   ./run.sh                → ephemeral mode (temporary container)
+#   ./run.sh --persistent   → persistent mode (keeps ASMETA installed)
+#   ./run.sh --clean        → remove stopped containers
 
 MODE=$1
+IMAGE="ghcr.io/renegad6/eclipse-formal-pro:latest"
 
-# Permitir acceso gráfico
+# Allow graphical access
 xhost +local:docker > /dev/null
+
+# --- Automatic image update ---
+echo ">> Checking for a newer version of the image..."
+docker pull $IMAGE >/dev/null 2>&1
+
+if [ $? -eq 0 ]; then
+    echo ">> Image updated from GHCR (if changes were available)."
+else
+    echo ">> Could not update the image (offline or image not found)."
+    echo ">> Using the local image instead."
+fi
 
 case "$MODE" in
 
     --persistent)
-        echo ">> Modo persistente activado."
-        echo ">> El contenedor 'asmeta-env' conservará ASMETA y cualquier configuración interna."
+        echo ">> Persistent mode enabled."
+        echo ">> The container 'asmeta-env' will keep ASMETA and internal configuration."
 
-        # Crear el contenedor si no existe
+        # Create the container if it does not exist
         if ! docker ps -a --format '{{.Names}}' | grep -q '^asmeta-env$'; then
-            echo ">> Creando contenedor persistente por primera vez..."
+            echo ">> Creating persistent container for the first time..."
             docker create \
                 -e DISPLAY=$DISPLAY \
                 -v /tmp/.X11-unix:/tmp/.X11-unix \
                 -v ~/workspace-eclipse:/workspace \
                 --name asmeta-env \
-                eclipse-formal-pro
+                $IMAGE
         fi
 
-        # Arrancar el contenedor persistente
+        # Start the persistent container
         docker start -a asmeta-env
         ;;
 
     --clean)
-        echo ">> Limpiando contenedores parados..."
+        echo ">> Cleaning stopped containers..."
         docker container prune -f
-        echo ">> Limpieza completada."
+        echo ">> Cleanup completed."
         ;;
 
     *)
-        echo ">> Ejecutando en modo EFÍMERO (contenedor temporal)."
-        echo ">> Si quieres conservar ASMETA instalado dentro del contenedor, usa:"
+        echo ">> Running in EPHEMERAL mode (temporary container)."
+        echo ">> To keep ASMETA installed inside the container, use:"
         echo "       ./run.sh --persistent"
-        echo ">> Para limpiar contenedores parados, usa:"
+        echo ">> To clean stopped containers, use:"
         echo "       ./run.sh --clean"
         echo ""
 
@@ -49,6 +61,6 @@ case "$MODE" in
             -e DISPLAY=$DISPLAY \
             -v /tmp/.X11-unix:/tmp/.X11-unix \
             -v ~/workspace-eclipse:/workspace \
-            eclipse-formal-pro
+            $IMAGE
         ;;
 esac
