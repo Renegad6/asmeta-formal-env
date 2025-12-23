@@ -1,0 +1,6 @@
+workspace/
+*.log
+*.class
+*.tar
+*.img
+*.DS_Store
