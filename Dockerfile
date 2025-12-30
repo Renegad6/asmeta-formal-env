@@ -29,6 +29,12 @@ RUN apt update && apt install -y \
     libatk1.0-0 \
     libatk-bridge2.0-0 \
     libxrandr2 \
+    xfce4 \
+    xfce4-terminal \
+    tigervnc-standalone-server \
+    tigervnc-common \
+    novnc \
+    websockify \
     && apt clean
 
 # -----------------------------
@@ -69,7 +75,6 @@ RUN wget https://ftp.osuosl.org/pub/eclipse/technology/epp/downloads/release/202
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="$PATH:/opt/eclipse"
-ENV DISPLAY=:0
 
 # -----------------------------
 # 6. Instalar ASMETA automáticamente
@@ -90,6 +95,25 @@ RUN mkdir -p /workspace
 VOLUME /workspace
 
 # -----------------------------
-# 8. Comando por defecto
+# 8. Configurar VNC
 # -----------------------------
-CMD ["/opt/eclipse/eclipse"]
+RUN mkdir -p /root/.vnc && \
+    echo "1234" | vncpasswd -f > /root/.vnc/passwd && \
+    chmod 600 /root/.vnc/passwd
+
+# -----------------------------
+# 9. Script de arranque VNC + noVNC + Eclipse
+# -----------------------------
+RUN echo '#!/bin/bash\n\
+vncserver :1 -geometry 1280x800 -depth 24\n\
+websockify --web=/usr/share/novnc/ 6080 localhost:5901 &\n\
+sleep 2\n\
+DISPLAY=:1 /opt/eclipse/eclipse\n\
+tail -f /root/.vnc/*.log' > /start-vnc.sh && chmod +x /start-vnc.sh
+
+EXPOSE 5901 6080
+
+# -----------------------------
+# 10. Comando por defecto
+# -----------------------------
+CMD ["/start-vnc.sh"]
