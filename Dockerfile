@@ -16,6 +16,7 @@ RUN apt update && apt install -y \
     python3 \
     python3-pip \
     unzip \
+    bison \
     libgtk-3-0 \
     libasound2 \
     libxext6 \
@@ -56,64 +57,48 @@ RUN wget https://nusmv.fbk.eu/distrib/NuSMV-2.6.0-linux64.tar.gz \
 ENV PATH="/opt/NuSMV-2.6.0-Linux/bin:$PATH"
 
 # -----------------------------
-# 4. Instalar Spin
+# 4. Instalar Spin (6.5.2)
 # -----------------------------
-RUN wget http://spinroot.com/spin/Src/spin647.tar.gz \
-    && tar -xzf spin647.tar.gz \
-    && cd Spin/Src6.4.7 && make \
+RUN wget https://github.com/nimble-code/Spin/archive/refs/tags/version-6.5.2.tar.gz \
+    && tar -xzf version-6.5.2.tar.gz \
+    && cd Spin-version-6.5.2/Src && make \
     && cp spin /usr/local/bin \
-    && cd / && rm -r Spin spin647.tar.gz
+    && cd / && rm -rf Spin-version-6.5.2 version-6.5.2.tar.gz
 
 # -----------------------------
-# 5. Instalar Eclipse
+# 5. Instalar Eclipse (2021‑03 compatible con ASMETA)
 # -----------------------------
 WORKDIR /opt
 
-RUN wget https://ftp.osuosl.org/pub/eclipse/technology/epp/downloads/release/2024-12/R/eclipse-java-2024-12-R-linux-gtk-x86_64.tar.gz \
-    && tar -xzf eclipse-java-2024-12-R-linux-gtk-x86_64.tar.gz \
-    && rm eclipse-java-2024-12-R-linux-gtk-x86_64.tar.gz
+RUN wget https://download.eclipse.org/technology/epp/downloads/release/2021-03/R/eclipse-modeling-2021-03-R-linux-gtk-x86_64.tar.gz \
+    && tar -xzf eclipse-modeling-2021-03-R-linux-gtk-x86_64.tar.gz \
+    && rm eclipse-modeling-2021-03-R-linux-gtk-x86_64.tar.gz
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="$PATH:/opt/eclipse"
 
 # -----------------------------
-# 6. Instalar ASMETA automáticamente
-# -----------------------------
-RUN /opt/eclipse/eclipse \
-    -nosplash \
-    -application org.eclipse.equinox.p2.director \
-    -repository https://asmeta.github.io/update/ \
-    -installIU asmeta.core.feature.group \
-    -installIU asmeta.simulator.feature.group \
-    -installIU asmeta.animator.feature.group \
-    -installIU asmeta.ctl.feature.group
-
-# -----------------------------
-# 7. Workspace por defecto
+# 6. Workspace por defecto
 # -----------------------------
 RUN mkdir -p /workspace
 VOLUME /workspace
 
 # -----------------------------
-# 8. Configurar VNC
+# 7. Configurar VNC
 # -----------------------------
 RUN mkdir -p /root/.vnc && \
     echo "1234" | vncpasswd -f > /root/.vnc/passwd && \
     chmod 600 /root/.vnc/passwd
 
 # -----------------------------
-# 9. Script de arranque VNC + noVNC + Eclipse
+# 8. Script de arranque VNC + noVNC + ASMETA auto-install
 # -----------------------------
-RUN echo '#!/bin/bash\n\
-vncserver :1 -geometry 1280x800 -depth 24\n\
-websockify --web=/usr/share/novnc/ 6080 localhost:5901 &\n\
-sleep 2\n\
-DISPLAY=:1 /opt/eclipse/eclipse\n\
-tail -f /root/.vnc/*.log' > /start-vnc.sh && chmod +x /start-vnc.sh
+COPY start-vnc.sh /start-vnc.sh
+RUN chmod +x /start-vnc.sh
 
 EXPOSE 5901 6080
 
 # -----------------------------
-# 10. Comando por defecto
+# 9. Comando por defecto
 # -----------------------------
 CMD ["/start-vnc.sh"]

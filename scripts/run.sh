@@ -2,18 +2,15 @@
 
 # Usage:
 #   ./run.sh                → ephemeral mode (temporary container)
-#   ./run.sh --persistent   → persistent mode (keeps ASMETA installed)
+#   ./run.sh --persistent   → persistent mode (keeps workspace)
 #   ./run.sh --clean        → remove stopped containers
 
 MODE=$1
 IMAGE="ghcr.io/renegad6/eclipse-formal-pro:latest"
+CONTAINER_NAME="asmeta-env"
 
-# Allow graphical access
-xhost +local:docker > /dev/null
-
-# --- Automatic image update ---
 echo ">> Checking for a newer version of the image..."
-docker pull $IMAGE >/dev/null 2>&1
+ #docker pull $IMAGE >/dev/null 2>&1
 
 if [ $? -eq 0 ]; then
     echo ">> Image updated from GHCR (if changes were available)."
@@ -26,21 +23,24 @@ case "$MODE" in
 
     --persistent)
         echo ">> Persistent mode enabled."
-        echo ">> The container 'asmeta-env' will keep ASMETA and internal configuration."
+        echo ">> Container: $CONTAINER_NAME"
 
         # Create the container if it does not exist
-        if ! docker ps -a --format '{{.Names}}' | grep -q '^asmeta-env$'; then
+        if ! docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
             echo ">> Creating persistent container for the first time..."
-            docker create \
-                -e DISPLAY=$DISPLAY \
-                -v /tmp/.X11-unix:/tmp/.X11-unix \
-                -v ~/workspace-eclipse:/workspace \
-                --name asmeta-env \
-                $IMAGE
+docker create \
+    -p 6080:6080 \
+    -p 5901:5901 \
+    -v ~/workspace-eclipse:/workspace \
+    -v /workspaces/asmeta-formal-env/asmeta-update:/opt/asmeta-update \
+    --name $CONTAINER_NAME \
+    --entrypoint /start-vnc.sh \
+    $IMAGE
+
         fi
 
         # Start the persistent container
-        docker start -a asmeta-env
+        docker start -a $CONTAINER_NAME
         ;;
 
     --clean)
@@ -51,16 +51,16 @@ case "$MODE" in
 
     *)
         echo ">> Running in EPHEMERAL mode (temporary container)."
-        echo ">> To keep ASMETA installed inside the container, use:"
+        echo ">> To keep ASMETA installed and workspace persistent, use:"
         echo "       ./run.sh --persistent"
         echo ">> To clean stopped containers, use:"
         echo "       ./run.sh --clean"
         echo ""
 
         docker run --rm \
-            -e DISPLAY=$DISPLAY \
-            -v /tmp/.X11-unix:/tmp/.X11-unix \
-            -v ~/workspace-eclipse:/workspace \
+            -p 6080:6080 \
+            -p 5901:5901 \
+            -v /workspaces/asmeta-formal-env/asmeta-update:/opt/asmeta-update \
             $IMAGE
         ;;
 esac
