@@ -66,13 +66,15 @@ RUN wget https://github.com/nimble-code/Spin/archive/refs/tags/version-6.5.2.tar
     && cd / && rm -rf Spin-version-6.5.2 version-6.5.2.tar.gz
 
 # -----------------------------
-# 5. Instalar Eclipse (2021‑03 compatible con ASMETA)
+# 5. Instalar Eclipse 
 # -----------------------------
 WORKDIR /opt
 
-RUN wget https://download.eclipse.org/technology/epp/downloads/release/2021-03/R/eclipse-modeling-2021-03-R-linux-gtk-x86_64.tar.gz \
-    && tar -xzf eclipse-modeling-2021-03-R-linux-gtk-x86_64.tar.gz \
-    && rm eclipse-modeling-2021-03-R-linux-gtk-x86_64.tar.gz
+RUN rm -rf /opt/eclipse \
+  && wget -O eclipse.tar.gz \
+     "https://ftp.fau.de/eclipse/technology/epp/downloads/release/2025-12/R/eclipse-modeling-2025-12-R-linux-gtk-x86_64.tar.gz" \
+  && tar -xzf eclipse.tar.gz \
+  && rm eclipse.tar.gz
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="$PATH:/opt/eclipse"
