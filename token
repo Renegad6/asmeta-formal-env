@@ -1,1 +1,1 @@
-export GHCR_TOKEN=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
+cho $GHCR_TOKEN | docker login ghcr.io -u renegad6 --password-stdin
